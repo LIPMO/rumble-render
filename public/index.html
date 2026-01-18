@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<body style="background:black;color:lime;font-family:monospace">
+
+<h2>🎮 RUMBLE REMOTE</h2>
+
+<input id="pwd" placeholder="Mot de passe">
+<br><br>
+
+<button onclick="send(1)">Continu</button>
+<button onclick="send(3)">Pulse</button>
+<button onclick="send(7)">Vague</button>
+<button onclick="send(12)">Random</button>
+<button onclick="send(0)">STOP</button>
+
+<p id="s">Connexion...</p>
+
+<script>
+const ws = new WebSocket(location.origin.replace("http","ws"));
+let idx=null, t=null;
+
+ws.onopen=()=>s.innerText="Connecté ✔";
+ws.onmessage=e=>{
+  const d=JSON.parse(e.data);
+  run(d.mode);
+};
+
+window.addEventListener("gamepadconnected",e=>{
+  idx=e.gamepad.index;
+});
+
+function pad(){return navigator.getGamepads()[idx];}
+function v(a,b,d){
+  let g=pad();
+  if(!g||!g.vibrationActuator)return;
+  g.vibrationActuator.playEffect("dual-rumble",{duration:d,strongMagnitude:a,weakMagnitude:b});
+}
+function stop(){clearInterval(t);t=null;}
+
+function run(m){
+  stop();
+  if(m===0)return;
+  let i=0;
+  t=setInterval(()=>{
+    switch(m){
+      case 1:v(1,1,200);break;
+      case 3:v(1,0,100);break;
+      case 7:v(Math.abs(Math.sin(i)),0.5,120);i+=0.3;break;
+      case 12:v(Math.random(),Math.random(),120);break;
+    }
+  },180);
+}
+
+function send(m){
+  ws.send(JSON.stringify({
+    password: pwd.value,
+    mode: m
+  }));
+}
+</script>
+
+</body>
+</html>
