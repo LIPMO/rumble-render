@@ -6,10 +6,7 @@ const PASSWORD = process.env.PASSWORD || "1234";
 const app = express();
 app.use(express.static("public"));
 
-const server = app.listen(process.env.PORT || 3000, () =>
-  console.log("Server running")
-);
-
+const server = app.listen(process.env.PORT || 3000);
 const wss = new WebSocket.Server({ server });
 
 wss.on("connection", ws => {
@@ -17,7 +14,6 @@ wss.on("connection", ws => {
     try {
       const data = JSON.parse(msg.toString());
       if (data.password !== PASSWORD) return;
-
       wss.clients.forEach(c => {
         if (c.readyState === WebSocket.OPEN) {
           c.send(JSON.stringify(data));

@@ -1,63 +1,116 @@
 <!DOCTYPE html>
 <html lang="fr">
-<body style="background:black;color:lime;font-family:monospace">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<style>
+body{margin:0;background:#0b0b0b;color:#eee;font-family:-apple-system,BlinkMacSystemFont}
+.app{max-width:420px;margin:auto;padding:20px}
+h1{text-align:center;font-size:22px;font-weight:500}
+input,select{width:100%;padding:14px;background:#111;border:1px solid #222;color:#fff;border-radius:14px;margin:10px 0}
+.slider{margin:20px 0}
+button{width:100%;padding:16px;border-radius:18px;background:#111;border:1px solid #222;color:#fff;font-size:16px}
+.stop{background:#1a0000;border-color:#330000;margin-top:10px}
+.status{text-align:center;font-size:13px;opacity:.6}
+</style>
+</head>
 
-<h2>🎮 RUMBLE REMOTE</h2>
+<body>
+<div class="app">
+<h1>Rumble Remote</h1>
 
-<input id="pwd" placeholder="Mot de passe">
-<br><br>
+<input id="pseudo" placeholder="Pseudo">
+<input id="pwd" placeholder="Mot de passe" type="password">
 
-<button onclick="send(1)">Continu</button>
-<button onclick="send(3)">Pulse</button>
-<button onclick="send(7)">Vague</button>
-<button onclick="send(12)">Random</button>
-<button onclick="send(0)">STOP</button>
+<select id="mode">
+<option value="1">Continu</option>
+<option value="2">Pulse lent</option>
+<option value="3">Pulse rapide</option>
+<option value="4">Vague</option>
+<option value="5">Respiration</option>
+<option value="6">Alterné</option>
+<option value="7">Random</option>
+<option value="8">Chaos</option>
+<option value="9">Hypnotique</option>
+<option value="10">Explosion</option>
+<option value="11">Marteau</option>
+<option value="12">Rafale</option>
+<option value="13">Battement</option>
+<option value="14">Ondulation</option>
+<option value="15">Montée</option>
+<option value="16">Descente</option>
+<option value="17">Balayage</option>
+<option value="18">Glitch</option>
+<option value="19">Choc</option>
+<option value="20">Turbo</option>
+<option value="21">Ultra</option>
+<option value="22">Random doux</option>
+<option value="23">Random brutal</option>
+<option value="24">Gauche seul</option>
+<option value="25">Droite seul</option>
+<option value="26">Alterné G/D</option>
+<option value="27">Morse</option>
+<option value="28">Pulse ++</option>
+<option value="29">Respiration lente</option>
+<option value="30">Hypnose lente</option>
+</select>
 
-<p id="s">Connexion...</p>
+<div class="slider">
+<label>Intensité</label>
+<input id="power" type="range" min="1" max="100" value="60" oninput="send()">
+</div>
+
+<button onclick="send()">ACTIVER</button>
+<button class="stop" onclick="send(0)">STOP</button>
+
+<div class="status" id="s">Connexion...</div>
+</div>
 
 <script>
-const ws = new WebSocket(location.origin.replace("http","ws"));
-let idx=null, t=null;
+const ws=new WebSocket(location.origin.replace("http","ws"));
+let idx=null,t=null, last={};
 
-ws.onopen=()=>s.innerText="Connecté ✔";
-ws.onmessage=e=>{
-  const d=JSON.parse(e.data);
-  run(d.mode);
-};
+ws.onopen=()=>s.innerText="Connecté";
+ws.onmessage=e=>run(JSON.parse(e.data));
 
-window.addEventListener("gamepadconnected",e=>{
-  idx=e.gamepad.index;
-});
+window.addEventListener("gamepadconnected",e=>idx=e.gamepad.index);
 
 function pad(){return navigator.getGamepads()[idx];}
 function v(a,b,d){
-  let g=pad();
-  if(!g||!g.vibrationActuator)return;
-  g.vibrationActuator.playEffect("dual-rumble",{duration:d,strongMagnitude:a,weakMagnitude:b});
+ let g=pad();
+ if(!g||!g.vibrationActuator)return;
+ g.vibrationActuator.playEffect("dual-rumble",{duration:d,strongMagnitude:a,weakMagnitude:b});
 }
 function stop(){clearInterval(t);t=null;}
-
-function run(m){
-  stop();
-  if(m===0)return;
-  let i=0;
-  t=setInterval(()=>{
-    switch(m){
-      case 1:v(1,1,200);break;
-      case 3:v(1,0,100);break;
-      case 7:v(Math.abs(Math.sin(i)),0.5,120);i+=0.3;break;
-      case 12:v(Math.random(),Math.random(),120);break;
-    }
-  },180);
+function run(d){
+ stop();
+ if(d.mode===0)return;
+ let i=0,p=d.power/100;
+ t=setInterval(()=>{
+  switch(d.mode){
+   case 1:v(p,p,200);break;
+   case 2:v(p,0,200);break;
+   case 3:v(p,0,80);break;
+   case 4:v(Math.abs(Math.sin(i))*p,p/2,120);i+=.3;break;
+   case 5:v(Math.abs(Math.sin(i))*p,Math.abs(Math.sin(i))*p,200);i+=.1;break;
+   case 6:v(i%2?p:0,i%2?0:p,120);i++;break;
+   case 7:v(Math.random()*p,Math.random()*p,120);break;
+   case 8:v(Math.random(),Math.random(),60);break;
+   case 9:v(Math.sin(i)**2*p,Math.sin(i*2)**2*p,100);i+=.2;break;
+   default:v(p,p,120);
+  }
+ },180);
 }
-
 function send(m){
-  ws.send(JSON.stringify({
-    password: pwd.value,
-    mode: m
-  }));
+ const data={
+  pseudo:pseudo.value||"anon",
+  password:pwd.value,
+  mode:m??+mode.value,
+  power:+power.value
+ };
+ last=data;
+ ws.send(JSON.stringify(data));
 }
 </script>
-
 </body>
 </html>
